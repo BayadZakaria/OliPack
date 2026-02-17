@@ -13,6 +13,7 @@ import OliPackStudio from './sections/OliPackStudio';
 import Atelier from './sections/Atelier';
 import Products from './sections/Products';
 import AdminControl from './sections/AdminControl';
+import SalesControl from './sections/SalesControl';
 import QualityControl from './sections/QualityControl';
 import Scan from './sections/Scan';
 import Auth from './Auth';
@@ -46,6 +47,7 @@ const App: React.FC = () => {
           else if (u.role === 'COLLECTEUR') setActiveSection(AppSection.COLLECTION);
           else if (u.role === 'HUILERIE') setActiveSection(AppSection.DASHBOARD);
           else if (u.role === 'TECHNICIEN') setActiveSection(AppSection.SCAN);
+          else if (u.role === 'VENDEUR') setActiveSection(AppSection.SALES_CONTROL);
         }
       }
       setLoading(false);
@@ -62,6 +64,7 @@ const App: React.FC = () => {
       else if (u.role === 'COLLECTEUR') setActiveSection(AppSection.COLLECTION);
       else if (u.role === 'HUILERIE') setActiveSection(AppSection.DASHBOARD);
       else if (u.role === 'TECHNICIEN') setActiveSection(AppSection.SCAN);
+      else if (u.role === 'VENDEUR') setActiveSection(AppSection.SALES_CONTROL);
       else setActiveSection(AppSection.HOME);
     }
   };
@@ -150,12 +153,13 @@ const App: React.FC = () => {
       case AppSection.STUDIO: return <OliPackStudio user={user} onRequireAuth={() => setShowAuth(true)} />;
       case AppSection.ASSISTANT: return user ? <AIAssistant /> : <Home onGetStarted={() => setShowAuth(true)} />;
       case AppSection.ML_PREDICT: return user ? <MLPredict /> : <Home onGetStarted={() => setShowAuth(true)} />;
-      case AppSection.IMPACT: return user ? <ImpactCalculator /> : <Home onGetStarted={() => setShowAuth(true)} />;
+      case AppSection.IMPACT: return <ImpactCalculator />;
       case AppSection.PROFILE: return user ? <Profile user={user} onUpdate={setUser} onLogout={handleLogout} /> : null;
       case AppSection.COLLECTION: return user ? <Collection user={user} /> : <Home onGetStarted={() => setShowAuth(true)} />;
       case AppSection.ATELIER: return <Atelier />;
       case AppSection.PRODUCTS: return <Products user={user} onRequireAuth={() => setShowAuth(true)} />;
       case AppSection.ADMIN_CONTROL: return (user?.role === 'ADMIN') ? <AdminControl /> : <Home onGetStarted={() => setShowAuth(true)} />;
+      case AppSection.SALES_CONTROL: return (user?.role === 'VENDEUR' || user?.role === 'ADMIN') ? <SalesControl user={user!} /> : <Home onGetStarted={() => setShowAuth(true)} />;
       default: return <Home onGetStarted={() => setShowAuth(true)} />;
     }
   };
