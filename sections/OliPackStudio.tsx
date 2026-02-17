@@ -1,221 +1,238 @@
+'use client';
 
 import React, { useState } from 'react';
 import { GoogleGenAI } from "@google/genai";
-import { Palette, Wand2, ImageIcon, Type, Download, Loader2, Sparkles, ShieldCheck, ShoppingCart, ArrowRight } from 'lucide-react';
-import Logo from '../components/Logo';
-import { UserProfile } from '../types';
+import { Wand2, ImageIcon, Type, Loader2, Sparkles, Leaf, ShoppingCart, Share2 } from 'lucide-react';
 
-interface OliPackStudioProps {
-  user: UserProfile | null;
-  onRequireAuth: () => void;
-}
+// --- COMPOSANT LOGO INTERNE ---
+// Je l'ai mis ici pour éviter les erreurs d'importation si le fichier manque.
+const SimpleLogo = () => (
+  <div className="flex items-center gap-2 font-black tracking-tighter select-none">
+    <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center text-white shadow-emerald-200 shadow-lg">
+      <Leaf size={18} fill="currentColor" />
+    </div>
+    <span className="text-xl text-slate-900">OliPack<span className="text-emerald-500">.AI</span></span>
+  </div>
+);
 
-const OliPackStudio: React.FC<OliPackStudioProps> = ({ user, onRequireAuth }) => {
-  const [activeTab, setActiveTab] = useState<'visual' | 'content'>('visual');
-  const [loading, setLoading] = useState(false);
-  const [imageResult, setImageResult] = useState<string | null>(null);
-  const [textResult, setTextResult] = useState<string | null>(null);
-  const [prompt, setPrompt] = useState('');
+const OliPackStudio = () => {
+  // --- ÉTATS (STATES) ---
+  const [activeTab, setActiveTab] = useState<'visual' | 'content'>('visual'); // Onglet actif (Image ou Texte)
+  const [loading, setLoading] = useState(false); // État de chargement
+  const [result, setResult] = useState<string | null>(null); // Résultat (URL image ou Texte)
+  const [prompt, setPrompt] = useState(''); // Ce que l'utilisateur écrit
 
-  const generatePrototype = async () => {
-    if (loading || !prompt) return;
-    setLoading(true);
-    try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash-image',
-        contents: { parts: [{ text: `A professional cinematic 3D product mockup of ${prompt}. The packaging must include the "OliPack" logo and brand name, minimalist design, luxury eco-friendly look, emerald green and matte white materials, 8k resolution, studio lighting.` }] }
-      });
+  // --- CONFIGURATION GEMINI ---
+  // Initialisation du client avec la clé publique (NEXT_PUBLIC_)
+  const ai = new GoogleGenAI({ apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY || '' });
 
-      if (response.candidates && response.candidates[0].content.parts) {
-        for (const part of response.candidates[0].content.parts) {
-          if (part.inlineData) {
-            setImageResult(`data:image/png;base64,${part.inlineData.data}`);
-            break;
-          }
-        }
-      }
-    } catch (error) {
-      console.error(error);
-      alert("Erreur lors de la génération visuelle.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const generateContent = async () => {
-    if (loading || !prompt) return;
-    setLoading(true);
-    try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
-        contents: `Rédige une description marketing premium pour un produit de luxe de la marque OliPack (startup marocaine spécialisée dans le bioplastique). Le produit est: ${prompt}. Utilise un ton élégant, professionnel et insiste sur la signature "OliPack : Du déchet noir à l'or vert".`,
-      });
-      setTextResult(response.text || "Erreur de génération.");
-    } catch (error) {
-      console.error(error);
-      alert("Erreur lors de la génération textuelle.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleAddToCart = () => {
-    if (!user) {
-      onRequireAuth();
+  // --- FONCTION DE GÉNÉRATION ---
+  const handleGenerate = async () => {
+    // 1. Validation : On vérifie si l'input est vide ou si la clé manque
+    if (!prompt) return;
+    if (!process.env.NEXT_PUBLIC_GEMINI_API_KEY) {
+      alert("Erreur : Clé API manquante dans le fichier .env.local");
       return;
     }
-    alert(`Votre ${activeTab === 'visual' ? 'design personnalisé' : 'rédaction'} a été ajouté à vos demandes de devis !`);
+    
+    setLoading(true);
+    setResult(null);
+
+    try {
+      if (activeTab === 'visual') {
+        // --- CAS 1 : GÉNÉRATION D'IMAGE (Mode Design) ---
+        // On utilise le modèle spécialisé "Imagen 3"
+        const response = await ai.models.generateImage({
+          model: 'imagen-3.0-generate-001',
+          prompt: `Professional 3D product render of: ${prompt}. 
+          Style: High-end industrial design, eco-friendly material (bioplastic from olive waste), olive green accents, studio lighting, 8k resolution, minimalist packaging.`,
+          config: { 
+            numberOfImages: 1, 
+            aspectRatio: "1:1" // Format carré
+          }
+        });
+        
+        // On vérifie si l'image a bien été générée en Base64
+        if (response?.image?.base64) {
+          setResult(`data:image/png;base64,${response.image.base64}`);
+        } else {
+          alert("L'image n'a pas pu être générée. Vérifiez que l'API Imagen est activée sur votre compte Google Cloud.");
+        }
+
+      } else {
+        // --- CAS 2 : GÉNÉRATION DE TEXTE (Mode Marketing) ---
+        // On utilise le modèle rapide "Gemini 1.5 Flash"
+        const response = await ai.models.generateContent({
+          model: 'gemini-1.5-flash',
+          contents: [{
+            role: 'user',
+            parts: [{ 
+              text: `Agis en tant qu'expert marketing pour OliPack (startup marocaine de bioplastique).
+              Rédige une description produit attractive pour : "${prompt}".
+              
+              Structure de la réponse :
+              1. Accroche ("Hook") percutante.
+              2. 3 Points forts (Écologique, Durable, Innovation Marocaine).
+              3. Appel à l'action.
+              
+              Ton : Premium, Innovant, Éco-responsable. Maximum 150 mots.` 
+            }]
+          }]
+        });
+        
+        // On récupère le texte de la réponse
+        setResult(response.response.text());
+      }
+
+    } catch (error) {
+      console.error("Erreur Studio:", error);
+      alert("Une erreur est survenue lors de la connexion à l'IA. Vérifiez la console (F12) pour plus de détails.");
+    } finally {
+      // Quoi qu'il arrive (succès ou erreur), on arrête le chargement
+      setLoading(false);
+    }
   };
 
+  // --- INTERFACE UTILISATEUR (JSX) ---
   return (
-    <div className="space-y-8 animate-in fade-in duration-700 pb-20">
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div className="flex flex-col gap-1">
-          <Logo variant="dark" />
-          <h1 className="text-3xl font-bold text-slate-900 ml-1 tracking-tight">OliPack Studio AI</h1>
-          <p className="text-slate-500 ml-1">Concevez vos propres produits en bioplastique OliPack.</p>
-        </div>
+    <div className="w-full max-w-5xl mx-auto p-4 md:p-8">
+      <div className="bg-white rounded-[2.5rem] shadow-xl border border-slate-100 overflow-hidden">
         
-        <div className="flex bg-white rounded-2xl border border-slate-200 p-1 shadow-sm">
-          <button 
-            onClick={() => { setActiveTab('visual'); setImageResult(null); setTextResult(null); }} 
-            className={`px-6 py-2 rounded-xl text-xs font-bold transition-all ${activeTab === 'visual' ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-500 hover:bg-slate-50'}`}
-          >
-            Design Produit
-          </button>
-          <button 
-            onClick={() => { setActiveTab('content'); setImageResult(null); setTextResult(null); }} 
-            className={`px-6 py-2 rounded-xl text-xs font-bold transition-all ${activeTab === 'content' ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-500 hover:bg-slate-50'}`}
-          >
-            Marketing AI
-          </button>
-        </div>
-      </header>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* CONFIGURATION SIDE */}
-        <div className="bg-white rounded-[2.5rem] p-8 border border-slate-200 shadow-sm space-y-6">
-          <div className="flex items-center gap-2 text-emerald-600">
-            <Sparkles className="w-5 h-5" />
-            <h2 className="text-lg font-bold">Laboratoire de Création</h2>
-          </div>
+        {/* EN-TÊTE (Header) : Logo et Boutons de navigation */}
+        <div className="p-8 border-b border-slate-50 flex flex-col md:flex-row justify-between items-center gap-6">
+          <SimpleLogo />
           
-          <div className="space-y-4">
-            <div>
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Description de votre besoin</label>
+          {/* Sélecteur d'onglets */}
+          <div className="flex bg-slate-50 p-1.5 rounded-2xl border border-slate-100">
+            <button 
+              onClick={() => { setActiveTab('visual'); setResult(null); }}
+              className={`flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all duration-300 ${activeTab === 'visual' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-200' : 'text-slate-400 hover:text-slate-600'}`}
+            >
+              <ImageIcon className="w-4 h-4" /> Design 3D
+            </button>
+            <button 
+              onClick={() => { setActiveTab('content'); setResult(null); }}
+              className={`flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all duration-300 ${activeTab === 'content' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-200' : 'text-slate-400 hover:text-slate-600'}`}
+            >
+              <Type className="w-4 h-4" /> Marketing
+            </button>
+          </div>
+        </div>
+
+        {/* ZONE PRINCIPALE : Grille 2 colonnes */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 min-h-[500px]">
+          
+          {/* COLONNE GAUCHE : Zone de saisie (Prompt) */}
+          <div className="p-8 md:p-12 space-y-8 border-r border-slate-50 bg-slate-50/30">
+            <div className="space-y-4">
+              <h2 className="text-2xl font-black text-slate-800 leading-tight">
+                {activeTab === 'visual' ? 'Imaginez votre Packaging.' : 'Rédigez votre Campagne.'}
+              </h2>
+              <p className="text-sm text-slate-500 font-medium">
+                L'IA OliPack transforme vos idées en prototypes industriels durables.
+              </p>
+            </div>
+
+            <div className="relative group">
               <textarea 
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
-                placeholder={activeTab === 'visual' ? "Ex: Un flacon de parfum de luxe, minimaliste, en bioplastique vert émeraude OliPack..." : "Ex: Présentation de notre nouvelle gamme de packaging biodégradable pour cosmétiques..."}
-                className="w-full h-40 bg-slate-50 border border-slate-200 rounded-2xl p-5 text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none resize-none shadow-inner"
+                placeholder={activeTab === 'visual' 
+                  ? "Ex: Une bouteille d'huile d'olive premium, forme ergonomique, texture mate..." 
+                  : "Ex: Lancement d'une gamme de pots cosmétiques biodégradables pour l'été..."}
+                className="w-full h-48 bg-white border border-slate-200 rounded-3xl p-6 text-slate-700 font-medium text-sm focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all outline-none resize-none shadow-sm group-hover:shadow-md"
               />
+              <div className="absolute bottom-4 right-4 text-[10px] font-bold text-slate-300 uppercase">
+                Powered by Gemini
+              </div>
             </div>
 
             <button
-              onClick={activeTab === 'visual' ? generatePrototype : generateContent}
+              onClick={handleGenerate}
               disabled={loading || !prompt}
-              className="w-full py-5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-bold flex items-center justify-center gap-3 transition-all transform active:scale-95 disabled:opacity-50 shadow-xl shadow-emerald-100"
+              className="w-full py-5 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 hover:bg-emerald-600 transition-all duration-300 shadow-xl hover:shadow-emerald-500/20 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed group"
             >
-              {loading ? <Loader2 className="animate-spin" /> : <Wand2 className="w-5 h-5" />}
-              {loading ? 'CONCEPTION EN COURS...' : 'LANCER LA CRÉATION'}
+              {loading ? (
+                <>
+                  <Loader2 className="animate-spin w-5 h-5" />
+                  Création en cours...
+                </>
+              ) : (
+                <>
+                  <Wand2 className="w-5 h-5 group-hover:rotate-12 transition-transform" />
+                  Générer le Concept
+                </>
+              )}
             </button>
           </div>
 
-          <div className="bg-emerald-50 p-4 rounded-2xl border border-emerald-100">
-             <p className="text-[10px] text-emerald-800 font-bold leading-relaxed uppercase">
-                Note : Studio AI utilise vos spécifications pour générer des prototypes industriels basés sur notre matière Or Vert.
-             </p>
-          </div>
-        </div>
+          {/* COLONNE DROITE : Zone de résultat */}
+          <div className="relative bg-white flex flex-col">
+            
+            {/* Indicateur de chargement (Overlay) */}
+            {loading && (
+              <div className="absolute inset-0 z-10 bg-white/90 backdrop-blur-sm flex flex-col items-center justify-center gap-4 animate-in fade-in">
+                <div className="relative">
+                  <div className="w-20 h-20 bg-emerald-100 rounded-full animate-ping absolute opacity-20"></div>
+                  <div className="w-20 h-20 bg-emerald-500 rounded-full flex items-center justify-center text-white shadow-2xl relative z-10">
+                    <Sparkles className="w-8 h-8 animate-spin-slow" />
+                  </div>
+                </div>
+                <p className="text-xs font-black text-emerald-600 uppercase tracking-widest animate-pulse">L'IA travaille...</p>
+              </div>
+            )}
 
-        {/* PREVIEW SIDE - WITH BRANDING */}
-        <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden flex flex-col min-h-[500px]">
-          {/* BRANDED HEADER */}
-          <div className="p-5 border-b border-slate-100 bg-white flex justify-between items-center">
-            <div className="flex items-center gap-2">
-               <Logo iconOnly className="scale-75" />
-               <span className="font-bold text-slate-800 tracking-tight">OliPack <span className="text-emerald-500 italic">Studio™</span></span>
+            {/* Contenu du résultat */}
+            <div className="flex-1 p-8 md:p-12 flex items-center justify-center">
+              
+              {/* État vide (Placeholder) */}
+              {!result && !loading && (
+                <div className="text-center space-y-4 opacity-20 select-none">
+                  <div className="w-24 h-24 bg-slate-100 rounded-full mx-auto flex items-center justify-center">
+                    {activeTab === 'visual' ? <ImageIcon className="w-10 h-10 text-slate-400" /> : <Type className="w-10 h-10 text-slate-400" />}
+                  </div>
+                  <p className="text-xs font-black text-slate-900 uppercase tracking-widest">Le résultat apparaîtra ici</p>
+                </div>
+              )}
+
+              {/* Affichage Image */}
+              {result && activeTab === 'visual' && (
+                <div className="relative w-full group animate-in zoom-in-95 duration-500">
+                  <img src={result} alt="Prototype OliPack" className="w-full h-auto rounded-3xl shadow-2xl border-4 border-white transform transition-transform group-hover:scale-[1.02]" />
+                  <div className="absolute top-4 right-4 bg-white/90 backdrop-blur px-3 py-1.5 rounded-full text-[10px] font-black uppercase text-emerald-600 shadow-sm flex items-center gap-2">
+                    <Sparkles className="w-3 h-3" /> Imagen 3
+                  </div>
+                </div>
+              )}
+
+              {/* Affichage Texte Marketing */}
+              {result && activeTab === 'content' && (
+                <div className="w-full h-full overflow-y-auto custom-scrollbar animate-in slide-in-from-bottom-4">
+                  <div className="prose prose-sm prose-emerald max-w-none text-slate-600 font-medium leading-relaxed bg-slate-50 p-8 rounded-3xl border border-slate-100">
+                    <div className="flex items-center gap-2 mb-4 text-emerald-600 font-bold text-xs uppercase tracking-widest">
+                       <Sparkles className="w-4 h-4" /> Analyse Marketing
+                    </div>
+                    {/* On affiche le texte en respectant les sauts de ligne */}
+                    <div className="whitespace-pre-line">{result}</div>
+                  </div>
+                </div>
+              )}
             </div>
-            { (imageResult || textResult) && (
-              <div className="flex gap-2">
-                <button 
-                  onClick={handleAddToCart}
-                  className="px-4 py-2 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-emerald-600 transition-all shadow-md active:scale-95"
-                >
-                  <ShoppingCart className="w-3.5 h-3.5" /> Ajouter au panier
+
+            {/* Pied de page du résultat (Actions) */}
+            {result && (
+              <div className="p-6 border-t border-slate-100 flex gap-3 justify-end bg-slate-50/50 animate-in fade-in">
+                <button className="px-5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:text-emerald-600 hover:border-emerald-200 transition-colors flex items-center gap-2 shadow-sm">
+                  <Share2 className="w-4 h-4" /> Partager
                 </button>
-                <button className="p-2 bg-slate-50 text-slate-400 rounded-xl hover:text-emerald-600 transition-colors border border-slate-100 shadow-sm">
-                  <Download className="w-4 h-4" />
+                <button className="px-5 py-2.5 bg-emerald-600 text-white rounded-xl text-xs font-bold hover:bg-emerald-700 transition-colors flex items-center gap-2 shadow-lg shadow-emerald-200">
+                  <ShoppingCart className="w-4 h-4" /> Enregistrer le projet
                 </button>
               </div>
             )}
           </div>
-
-          <div className="flex-1 flex items-center justify-center p-8 bg-slate-50/30 relative">
-            {activeTab === 'visual' ? (
-              imageResult ? (
-                <div className="relative group animate-in zoom-in-95 duration-500">
-                  <img src={imageResult} alt="Prototype OliPack" className="max-w-full max-h-[400px] rounded-2xl shadow-2xl border-4 border-white" />
-                  {/* WATERMARK */}
-                  <div className="absolute bottom-4 right-4 bg-black/40 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 pointer-events-none">
-                     <p className="text-[10px] font-bold text-white uppercase tracking-widest">Prototype Officiel OliPack</p>
-                  </div>
-                </div>
-              ) : (
-                <div className="text-center space-y-4 opacity-20">
-                  <ImageIcon className="w-20 h-20 mx-auto text-slate-400" />
-                  <p className="text-sm font-bold text-slate-600 uppercase tracking-widest">Votre design apparaîtra ici</p>
-                </div>
-              )
-            ) : (
-              textResult ? (
-                <div className="w-full max-h-[400px] overflow-y-auto bg-white p-10 rounded-3xl border border-slate-200 shadow-inner animate-in slide-in-from-bottom-4">
-                  <div className="flex items-center gap-2 mb-6 pb-4 border-b border-slate-50">
-                     <ShieldCheck className="w-5 h-5 text-emerald-500" />
-                     <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Rédaction Approuvée OliPack</span>
-                  </div>
-                  <p className="text-slate-700 leading-relaxed whitespace-pre-wrap font-medium">{textResult}</p>
-                </div>
-              ) : (
-                <div className="text-center space-y-4 opacity-20">
-                  <Type className="w-20 h-20 mx-auto text-slate-400" />
-                  <p className="text-sm font-bold text-slate-600 uppercase tracking-widest">Attente de rédaction marketing</p>
-                </div>
-              )
-            )}
-          </div>
-          
-          <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-center gap-6">
-             <div className="flex items-center gap-2 opacity-40">
-                <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
-                <span className="text-[9px] font-bold uppercase">Eco-Conçu</span>
-             </div>
-             <div className="flex items-center gap-2 opacity-40">
-                <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
-                <span className="text-[9px] font-bold uppercase">Prototype PHA</span>
-             </div>
-             <div className="flex items-center gap-2 opacity-40">
-                <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
-                <span className="text-[9px] font-bold uppercase">Innovation 2025</span>
-             </div>
-          </div>
         </div>
       </div>
-      
-      {/* Footer Info for visitors */}
-      {!user && (
-        <div className="bg-emerald-900 text-white p-8 rounded-[2.5rem] shadow-xl flex flex-col md:flex-row items-center justify-between gap-6">
-           <div className="space-y-1 text-center md:text-left">
-              <h3 className="text-xl font-bold italic">Vous aimez votre création ?</h3>
-              <p className="text-emerald-200 text-sm opacity-80 font-medium">Inscrivez-vous pour obtenir un devis industriel gratuit et des échantillons physiques.</p>
-           </div>
-           <button onClick={onRequireAuth} className="px-8 py-4 bg-white text-emerald-900 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center gap-2 shadow-lg hover:bg-emerald-50 transition-all active:scale-95">
-             S'INSCRIRE MAINTENANT <ArrowRight className="w-4 h-4" />
-           </button>
-        </div>
-      )}
     </div>
   );
 };
