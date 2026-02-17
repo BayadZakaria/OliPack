@@ -159,6 +159,7 @@ const Auth: React.FC<AuthProps> = ({ onLogin, onCancel }) => {
                   <Briefcase className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
                   <select name="role" value={formData.role} onChange={handleChange} className="w-full pl-12 pr-10 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm appearance-none outline-none focus:ring-4 focus:ring-emerald-500/10 transition-all cursor-pointer font-bold text-slate-700">
                     <option value="ACHETEUR">Acheteur (Boutique & Produits)</option>
+                    <option value="VENDEUR">Vendeur (Gestionnaire de Zone)</option>
                     <option value="HUILERIE">Huilerie (Producteur de margines)</option>
                     <option value="COLLECTEUR">Logistique (Opérateur terrain)</option>
                     <option value="TECHNICIEN">Technique (IoT & Qualité)</option>
@@ -180,11 +181,6 @@ const Auth: React.FC<AuthProps> = ({ onLogin, onCancel }) => {
            <button onClick={() => { setIsSignup(!isSignup); setErrorMsg(''); setSuccessMsg(''); }} className="text-[10px] font-black text-emerald-600 uppercase tracking-widest hover:text-emerald-800 transition-colors">
             {isSignup ? "Déjà membre ? Se connecter" : "Nouveau ? S'inscrire comme partenaire"}
            </button>
-           <div className="mt-8 flex items-center justify-center gap-4 text-slate-100 opacity-20">
-             <div className="h-px w-12 bg-slate-400"></div>
-             <ShieldCheck className="w-4 h-4 text-slate-400" />
-             <div className="h-px w-12 bg-slate-400"></div>
-           </div>
         </div>
       </div>
     </div>
