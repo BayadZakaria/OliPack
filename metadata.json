@@ -1,0 +1,7 @@
+{
+  "name": "OliPack: From Black Waste to Green Gold",
+  "description": "A comprehensive dashboard for OliPack, a GreenTech startup transforming olive oil waste (margines/grignons) into pellets and bioplastics using IoT monitoring, AI-driven logistics, and circular economy principles.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
