@@ -1,5 +1,5 @@
 
-export type UserRole = 'ADMIN' | 'TECHNICIEN' | 'COLLECTEUR' | 'HUILERIE' | 'ACHETEUR';
+export type UserRole = 'ADMIN' | 'TECHNICIEN' | 'COLLECTEUR' | 'HUILERIE' | 'ACHETEUR' | 'VENDEUR';
 export type UserStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 
 export interface UserProfile {
@@ -44,6 +44,7 @@ export const AppSection = {
   STUDIO: 'studio',
   ASSISTANT: 'assistant',
   ADMIN_CONTROL: 'admin_control',
+  SALES_CONTROL: 'sales_control',
   ML_PREDICT: 'ml_predict',
   QUALITY_CONTROL: 'quality_control',
   SCAN: 'scan',
