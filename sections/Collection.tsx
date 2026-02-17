@@ -101,7 +101,9 @@ const Collection: React.FC<CollectionProps> = ({ user }) => {
 
   const filteredSites = useMemo(() => {
     return sites.filter(site => {
-      const isMyCity = user?.role === 'ADMIN' || site.ville === user?.ville;
+      // Pour satisfaire la demande : L'admin ET le collecteur (logistique) voient TOUT.
+      const hasFullVisibility = user?.role === 'ADMIN' || user?.role === 'COLLECTEUR';
+      const isMyCity = hasFullVisibility || site.ville === user?.ville;
       const matchesSearch = site.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                            site.location.toLowerCase().includes(searchTerm.toLowerCase());
       return isMyCity && matchesSearch;
@@ -132,7 +134,7 @@ const Collection: React.FC<CollectionProps> = ({ user }) => {
 
   return (
     <div className="space-y-8 animate-in pb-24 max-w-6xl mx-auto">
-      {/* HEADER TYPE ADMIN */}
+      {/* HEADER TYPE SUPERVISION TOTALE */}
       <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
         <div>
           <h1 className="text-3xl font-black text-slate-900 flex items-center gap-3">
@@ -143,7 +145,7 @@ const Collection: React.FC<CollectionProps> = ({ user }) => {
           </h1>
           <div className="flex items-center gap-3 mt-2">
             <span className="bg-emerald-100 text-emerald-700 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest border border-emerald-200 flex items-center gap-1.5">
-              <MapPin className="w-3 h-3" /> {user?.ville || 'Zone Industrielle'}
+              <MapPin className="w-3 h-3" /> {user?.role === 'ADMIN' || user?.role === 'COLLECTEUR' ? 'Vision Nationale' : user?.ville}
             </span>
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
                <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span> IoT Cloud Sync
@@ -164,7 +166,7 @@ const Collection: React.FC<CollectionProps> = ({ user }) => {
 
       {/* STATS OVERVIEW */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-         <StatItem icon={Droplets} label="Volume Dispo" value="12,4k L" color="text-blue-600" />
+         <StatItem icon={Droplets} label="Volume Total" value="12,4k L" color="text-blue-600" />
          <StatItem icon={AlertTriangle} label="En Alerte" value={sites.filter(s => s.fillLevel >= 80).length.toString()} color="text-amber-500" />
          <StatItem icon={CheckCircle2} label="Collectes/Jour" value="08" color="text-emerald-600" />
          <StatItem icon={TrendingUp} label="Efficacité" value="98%" color="text-slate-900" />
@@ -197,7 +199,7 @@ const Collection: React.FC<CollectionProps> = ({ user }) => {
                        <div>
                           <h3 className="text-2xl font-black text-slate-800 tracking-tight">{site.name}</h3>
                           <p className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1 mt-1">
-                            <MapPin className="w-3.5 h-3.5" /> {site.location}
+                            <MapPin className="w-3.5 h-3.5" /> {site.location} ({site.ville})
                           </p>
                        </div>
                        <div className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border ${
