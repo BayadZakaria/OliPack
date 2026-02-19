@@ -1,3 +1,4 @@
+'use client';
 
 import React, { useState } from 'react';
 import { GoogleGenAI } from "@google/genai";
@@ -39,38 +40,42 @@ const OliPackStudio: React.FC<OliPackStudioProps> = ({ user, onRequireAuth }) =>
   const [quantity, setQuantity] = useState(50);
   const [targetPrice, setTargetPrice] = useState('');
 
+  // Initialisation avec la bonne clé API (compatible navigateur/Vercel)
+  const ai = new GoogleGenAI({ apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY || '' });
+
   const generatePrototype = async () => {
     if (loading || !prompt) return;
+    
+    if (!process.env.NEXT_PUBLIC_GEMINI_API_KEY) {
+      alert("Erreur: Clé API manquante dans le fichier .env.local");
+      return;
+    }
+
     setLoading(true);
     setOrderSent(false);
     setImageResult(null);
     setTextResult(null);
+    
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash-image',
-        contents: { 
-          parts: [{ 
-            text: `High-end industrial 3D product visualization of: ${prompt}. 
-            Material: Luxury biodegradable PHA bioplastic, smooth matte finish. 
-            Color palette: Deep emerald green, marble white, olive oil gold accents. 
-            Branding: Embossed "OliPack" logo. 
-            Professional studio soft-box lighting, 8k resolution.` 
-          }] 
-        }
+      // CORRECTION : Utilisation du modèle Imagen 3 pour générer des images
+      const response = await ai.models.generateImage({
+        model: 'imagen-3.0-generate-001',
+        prompt: `High-end industrial 3D product visualization of: ${prompt}. 
+        Material: Luxury biodegradable PHA bioplastic, smooth matte finish. 
+        Color palette: Deep emerald green, marble white, olive oil gold accents. 
+        Branding: Embossed "OliPack" logo. 
+        Professional studio soft-box lighting, 8k resolution.`,
+        config: { numberOfImages: 1, aspectRatio: "1:1" }
       });
 
-      if (response.candidates?.[0]?.content?.parts) {
-        for (const part of response.candidates[0].content.parts) {
-          if (part.inlineData) {
-            setImageResult(`data:image/png;base64,${part.inlineData.data}`);
-            break;
-          }
-        }
+      if (response?.image?.base64) {
+        setImageResult(`data:image/png;base64,${response.image.base64}`);
+      } else {
+        alert("Erreur: L'image n'a pas pu être générée.");
       }
     } catch (error) {
       console.error(error);
-      alert("La génération visuelle a échoué. Vérifiez votre clé API.");
+      alert("La génération visuelle a échoué. Vérifiez que votre clé API a accès à Imagen.");
     } finally {
       setLoading(false);
     }
@@ -78,18 +83,29 @@ const OliPackStudio: React.FC<OliPackStudioProps> = ({ user, onRequireAuth }) =>
 
   const generateContent = async () => {
     if (loading || !prompt) return;
+    
+    if (!process.env.NEXT_PUBLIC_GEMINI_API_KEY) {
+      alert("Erreur: Clé API manquante dans le fichier .env.local");
+      return;
+    }
+
     setLoading(true);
     setOrderSent(false);
     setTextResult(null);
+    
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      // CORRECTION : Utilisation du modèle Gemini 1.5 Flash pour le texte
       const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
-        contents: `Rédige un argumentaire marketing de luxe pour ce produit OliPack : ${prompt}. Ton : Innovant et premium.`,
+        model: 'gemini-1.5-flash',
+        contents: [{
+          role: 'user',
+          parts: [{ text: `Rédige un argumentaire marketing de luxe pour ce produit OliPack : ${prompt}. Ton : Innovant et premium.` }]
+        }],
       });
-      setTextResult(response.text || "Erreur de génération.");
+      setTextResult(response.response.text() || "Erreur de génération.");
     } catch (error) {
       console.error(error);
+      alert("Erreur de génération du texte.");
     } finally {
       setLoading(false);
     }
@@ -113,7 +129,7 @@ const OliPackStudio: React.FC<OliPackStudioProps> = ({ user, onRequireAuth }) =>
         price: targetPrice || "Sur devis",
         date: new Date().toISOString(),
         status: "EN_ATTENTE",
-        ville: user.ville, // IMPORTANT: Tracement pour le vendeur local
+        ville: user.ville || "Maroc", // IMPORTANT: Tracement pour le vendeur local
         type: 'STUDIO'
       };
 
@@ -127,6 +143,7 @@ const OliPackStudio: React.FC<OliPackStudioProps> = ({ user, onRequireAuth }) =>
     }, 1500);
   };
 
+  // VUE DE CONFIRMATION DE COMMANDE
   if (orderSent) {
     return (
       <div className="h-[70vh] flex items-center justify-center animate-in zoom-in-95 duration-500">
@@ -137,7 +154,7 @@ const OliPackStudio: React.FC<OliPackStudioProps> = ({ user, onRequireAuth }) =>
           <div className="space-y-3">
             <h2 className="text-3xl font-black text-slate-900 tracking-tight">Demande Envoyée !</h2>
             <p className="text-sm text-slate-500 font-medium leading-relaxed">
-              Votre demande de production pour <span className="text-emerald-600 font-bold">"{prompt}"</span> a été transmise à notre équipe technique de {user?.ville}.
+              Votre demande de production pour <span className="text-emerald-600 font-bold">"{prompt}"</span> a été transmise à notre équipe technique de {user?.ville || 'votre région'}.
             </p>
           </div>
           <div className="bg-slate-50 p-6 rounded-2xl text-left border border-slate-100">
@@ -151,7 +168,11 @@ const OliPackStudio: React.FC<OliPackStudioProps> = ({ user, onRequireAuth }) =>
              </div>
           </div>
           <button 
-            onClick={() => setOrderSent(false)}
+            onClick={() => {
+              setOrderSent(false);
+              setImageResult(null);
+              setTextResult(null);
+            }}
             className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-xl"
           >
             CRÉER UN AUTRE DESIGN
@@ -161,6 +182,7 @@ const OliPackStudio: React.FC<OliPackStudioProps> = ({ user, onRequireAuth }) =>
     );
   }
 
+  // VUE PRINCIPALE DU STUDIO
   return (
     <div className="space-y-8 animate-in duration-700 pb-20">
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -216,6 +238,7 @@ const OliPackStudio: React.FC<OliPackStudioProps> = ({ user, onRequireAuth }) =>
             </div>
           </div>
 
+          {/* ZONE DE COMMANDE - Affichée uniquement si un résultat existe */}
           {(imageResult || textResult) && (
             <div className="bg-slate-900 text-white rounded-[2.5rem] p-8 shadow-2xl space-y-6 animate-in slide-in-from-bottom-6 duration-500 border border-emerald-500/20">
               <div className="flex items-center justify-between">
@@ -236,7 +259,7 @@ const OliPackStudio: React.FC<OliPackStudioProps> = ({ user, onRequireAuth }) =>
                       type="number" 
                       value={quantity} 
                       onChange={(e) => setQuantity(parseInt(e.target.value))}
-                      className="w-full bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 py-3 text-sm font-bold focus:border-emerald-500 outline-none" 
+                      className="w-full bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 py-3 text-sm font-bold focus:border-emerald-500 outline-none text-white" 
                     />
                   </div>
                 </div>
@@ -249,7 +272,7 @@ const OliPackStudio: React.FC<OliPackStudioProps> = ({ user, onRequireAuth }) =>
                       placeholder="Ex: 50.00"
                       value={targetPrice}
                       onChange={(e) => setTargetPrice(e.target.value)}
-                      className="w-full bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 py-3 text-sm font-bold focus:border-emerald-500 outline-none" 
+                      className="w-full bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 py-3 text-sm font-bold focus:border-emerald-500 outline-none text-white" 
                     />
                   </div>
                 </div>
@@ -274,6 +297,7 @@ const OliPackStudio: React.FC<OliPackStudioProps> = ({ user, onRequireAuth }) =>
           )}
         </div>
 
+        {/* ZONE DE PRÉVISUALISATION DU RÉSULTAT */}
         <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden flex flex-col min-h-[500px]">
           <div className="p-5 border-b border-slate-100 bg-white flex justify-between items-center">
             <div className="flex items-center gap-2">
@@ -288,6 +312,7 @@ const OliPackStudio: React.FC<OliPackStudioProps> = ({ user, onRequireAuth }) =>
           </div>
 
           <div className="flex-1 flex items-center justify-center p-8 bg-slate-50/30 relative">
+            {/* Condition de chargement intégrée ici pour s'assurer qu'elle masque l'ancien résultat */}
             {loading ? (
               <div className="flex flex-col items-center gap-4 animate-pulse">
                 <div className="w-20 h-20 bg-emerald-100 rounded-3xl flex items-center justify-center">
@@ -331,13 +356,14 @@ const OliPackStudio: React.FC<OliPackStudioProps> = ({ user, onRequireAuth }) =>
         </div>
       </div>
       
+      {/* BANNIÈRE DE CONNEXION */}
       {!user && (
         <div className="bg-emerald-900 text-white p-10 rounded-[3rem] shadow-xl flex flex-col md:flex-row items-center justify-between gap-8 border border-emerald-800">
            <div className="space-y-2 text-center md:text-left">
               <h3 className="text-2xl font-black italic tracking-tight">Ceci est une prévisualisation de commande</h3>
               <p className="text-emerald-200 text-sm font-medium opacity-80 uppercase tracking-wide">Connectez-vous pour que le gestionnaire de votre ville puisse valider votre demande.</p>
            </div>
-           <button onClick={onRequireAuth} className="px-10 py-5 bg-emerald-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest flex items-center gap-3 shadow-2xl transition-all active:scale-95">
+           <button onClick={onRequireAuth} className="px-10 py-5 bg-emerald-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest flex items-center gap-3 shadow-2xl hover:bg-emerald-400 transition-all active:scale-95">
              S'INSCRIRE POUR COMMANDER <ArrowRight className="w-4 h-4" />
            </button>
         </div>
