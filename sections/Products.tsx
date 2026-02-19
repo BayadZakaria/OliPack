@@ -58,6 +58,26 @@ const Products: React.FC<ProductsProps> = ({ user, onRequireAuth }) => {
     { id: 4, name: "Engrais Bio-Organique", category: "Agriculture", price: "0.80", unit: "DH/kg", desc: "Fertilisant riche en potassium et matières organiques.", img: "https://images.unsplash.com/photo-1585314062340-f1a5a7c9328d?q=80&w=400&auto=format&fit=crop", eco: 100, stock: "Marrakech" }
   ];
 
+  // Synchroniser le panier avec le localStorage
+  useEffect(() => {
+    const savedCart = localStorage.getItem('olipack_active_cart');
+    if (savedCart) setCart(JSON.parse(savedCart));
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('olipack_active_cart', JSON.stringify(cart));
+  }, [cart]);
+
+  // Écouter les mises à jour externes (du Studio par exemple)
+  useEffect(() => {
+    const handleUpdate = () => {
+      const savedCart = localStorage.getItem('olipack_active_cart');
+      if (savedCart) setCart(JSON.parse(savedCart));
+    };
+    window.addEventListener('cart-updated', handleUpdate);
+    return () => window.removeEventListener('cart-updated', handleUpdate);
+  }, []);
+
   useEffect(() => {
     const loadData = async () => {
       const data = await db.getReviews();
@@ -66,7 +86,6 @@ const Products: React.FC<ProductsProps> = ({ user, onRequireAuth }) => {
       const shopOrders = JSON.parse(localStorage.getItem('olipack_shop_orders') || '[]');
       const studioOrders = JSON.parse(localStorage.getItem('olipack_orders') || '[]');
       
-      // Filtrer pour l'acheteur : seulement SES commandes
       const allOrders = [...shopOrders, ...studioOrders].filter(o => o.user === user?.email).sort((a, b) => 
         new Date(b.date).getTime() - new Date(a.date).getTime()
       );
