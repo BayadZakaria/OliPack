@@ -1,6 +1,4 @@
-
 import React, { useState, useRef, useEffect } from 'react';
-import { GoogleGenAI } from "@google/genai";
 import { 
   Sparkles, 
   Send, 
@@ -56,11 +54,11 @@ const AIAssistant: React.FC = () => {
     setLoading(true);
 
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
-        contents: userMsg,
-        config: {
+      const response = await fetch("/api/ai/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: userMsg,
           systemInstruction: `Vous êtes l'assistant IA d'OliPack, une startup GreenTech marocaine de pointe. 
           Fondateur : Zakaria Bayad. 
           Expertise : Logistique des margines, IoT, Valorisation chimique (PHA) et énergétique (Pellets). 
@@ -69,12 +67,18 @@ const AIAssistant: React.FC = () => {
           2. Adoptez un ton professionnel, encourageant et tourné vers l'efficacité industrielle.
           3. Pour les calculs, montrez brièvement la logique.
           4. Terminez toujours par une suggestion d'action ("Souhaitez-vous que je planifie cette collecte ?").`
-        }
+        })
       });
 
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to generate response.");
+      }
+
+      const data = await response.json();
       setMessages(prev => [...prev, { 
         role: 'assistant', 
-        content: response.text || "Désolé, j'ai rencontré une erreur d'analyse.",
+        content: data.text || "Désolé, j'ai rencontré une erreur d'analyse.",
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       }]);
     } catch (error) {
@@ -89,7 +93,7 @@ const AIAssistant: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-[85vh] animate-in fade-in duration-700 max-w-5xl mx-auto">
+    <div className="flex flex-col h-[85vh] animate-in fade-in duration-700 max-w-5xl mx-auto text-left">
       {/* CHAT HEADER */}
       <header className="flex items-center justify-between mb-6 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
         <div className="flex items-center gap-4">
