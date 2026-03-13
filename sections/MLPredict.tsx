@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { 
   BrainCircuit, 
@@ -31,7 +30,6 @@ import {
   Cell
 } from 'recharts';
 import { db } from '../services/db';
-import { GoogleGenAI } from "@google/genai";
 
 const MLPredict: React.FC = () => {
   const [data, setData] = useState<any[]>([]);
@@ -87,12 +85,21 @@ const MLPredict: React.FC = () => {
     setTimeout(async () => {
       setIsTraining(false);
       try {
-        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-        const response = await ai.models.generateContent({
-          model: 'gemini-3-flash-preview',
-          contents: `Analyse ces résultats ML pour la startup OliPack : Le pH moyen est de 4.6, la stabilité est de 94%. Le modèle prévoit une légère hausse de l'acidité dans les 6 prochaines heures. Donne un diagnostic court (3 lignes) pour Zakaria sur l'état de la fermentation.`,
+        const response = await fetch("/api/ai/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            message: `Analyse ces résultats ML pour la startup OliPack : Le pH moyen est de 4.6, la stabilité est de 94%. Le modèle prévoit une légère hausse de l'acidité dans les 6 prochaines heures. Donne un diagnostic court (3 lignes) pour Zakaria sur l'état de la fermentation.`,
+          })
         });
-        setDiagnosis(response.text);
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || "Failed to generate diagnosis.");
+        }
+
+        const data = await response.json();
+        setDiagnosis(data.text || "Analyse terminée. Qualité stable. Hausse d'acidité prévue (+2%).");
         
         await db.savePrediction({ 
           site: 'Beni Mellal', 
@@ -164,7 +171,7 @@ const MLPredict: React.FC = () => {
           {diagnosis && (
             <div className="p-6 bg-emerald-50 border border-emerald-100 rounded-3xl animate-in slide-in-from-top-4">
                <div className="flex items-center gap-2 mb-2">
-                 <Sparkles className="w-4 h-4 text-emerald-600" />
+                  <Sparkles className="w-4 h-4 text-emerald-600" />
                  <span className="text-[10px] font-black text-emerald-700 uppercase tracking-widest">Diagnostic IA Gemini</span>
                </div>
                <p className="text-sm text-emerald-800 font-medium leading-relaxed italic">
@@ -199,10 +206,10 @@ const MLPredict: React.FC = () => {
             <div className="space-y-4">
               {featureImportance.map((f, i) => (
                 <div key={i} className="space-y-1.5">
-                   <div className="flex justify-between text-xs font-bold text-slate-700">
-                      <span>{f.name}</span>
-                      <span>{f.value}%</span>
-                   </div>
+                  <div className="flex justify-between text-xs font-bold text-slate-700">
+                    <span>{f.name}</span>
+                    <span>{f.value}%</span>
+                  </div>
                    <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
                       <div className="h-full transition-all duration-1000" style={{ width: `${f.value}%`, backgroundColor: f.color }}></div>
                    </div>
