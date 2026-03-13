@@ -1,14 +1,12 @@
-
 import React, { useState, useEffect } from 'react';
 import { 
-  ShieldAlert, Cpu, RefreshCcw, CheckCircle2, XCircle, Users, Search, Mail, 
+  ShieldAlert, Cpu, RefreshCw, CheckCircle2, XCircle, Users, Search, Mail, 
   Activity, UserCheck, UserX, BadgeCheck, AlertCircle, Clock, Briefcase, 
   Phone, Truck, ArrowRight, Eye, Check, MapPin, Trash2, MessageSquare, 
   Sparkles, Star, TrendingUp, BarChart3, BrainCircuit, Loader2
 } from 'lucide-react';
 import { db } from '../services/db';
 import { UserProfile, UserStatus, ProductReview } from '../types';
-import { GoogleGenAI } from "@google/genai";
 
 const AdminControl: React.FC = () => {
   const [tab, setTab] = useState<'hardware' | 'users' | 'activity' | 'sentiment'>('users');
@@ -39,29 +37,36 @@ const AdminControl: React.FC = () => {
   useEffect(() => { loadData(); }, []);
 
   const analyzeSentiment = async (productId: number) => {
-    const productReviews = reviews.filter(r => r.productId === productId);
-    if (productReviews.length === 0) {
+    const pReviews = reviews.filter(r => r.productId === productId);
+    if (pReviews.length === 0) {
       setAiReactions(prev => ({ ...prev, [productId]: "Aucun avis client pour ce produit." }));
       return;
     }
 
     setAnalyzingId(productId);
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      const prompt = `En tant qu'expert en analyse de marché GreenTech pour OliPack, analyse ces avis clients pour le produit "${products.find(p => p.id === productId)?.name}" :
-      ${productReviews.map(r => `- Note: ${r.rating}/5, Commentaire: "${r.comment}"`).join('\n')}
-      
-      Donne une "Réaction du Marché" concise comprenant :
-      1. Sentiment global (Positif/Neutre/Négatif).
-      2. Le principal point fort cité.
-      3. Une recommandation stratégique pour Zakaria Bayad (Admin).
-      Réponds en 3-4 lignes maximum, style professionnel et direct.`;
-
-      const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
-        contents: prompt
+      const response = await fetch("/api/ai/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: `En tant qu'expert en analyse de marché GreenTech pour OliPack, analyse ces avis clients pour le produit "${products.find(p => p.id === productId)?.name}" :
+          ${pReviews.map(r => `- Note: ${r.rating}/5, Commentaire: "${r.comment}"`).join('\n')}
+          
+          Donne une "Réaction du Marché" concise comprenant :
+          1. Sentiment global (Positif/Neutre/Négatif).
+          2. Le principal point fort cité.
+          3. Une recommandation stratégique pour Zakaria Bayad (Admin).
+          Réponds en 3-4 lignes maximum, style professionnel et direct.`,
+        })
       });
-      setAiReactions(prev => ({ ...prev, [productId]: response.text || "Erreur d'analyse." }));
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to analyze sentiment.");
+      }
+
+      const data = await response.json();
+      setAiReactions(prev => ({ ...prev, [productId]: data.text || "Erreur d'analyse." }));
     } catch (e) {
       setAiReactions(prev => ({ ...prev, [productId]: "Erreur lors de la connexion à Gemini AI." }));
     } finally {
@@ -83,7 +88,7 @@ const AdminControl: React.FC = () => {
   );
 
   return (
-    <div className="space-y-8 animate-in pb-20">
+    <div className="space-y-8 animate-in pb-20 text-left">
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-3xl font-black text-slate-900 flex items-center gap-3">
@@ -127,7 +132,7 @@ const AdminControl: React.FC = () => {
                   const avg = pReviews.length > 0 ? (pReviews.reduce((a,b)=>a+b.rating,0)/pReviews.length).toFixed(1) : "0";
                   
                   return (
-                     <div key={p.id} className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm space-y-6 group hover:border-emerald-200 transition-all">
+                    <div key={p.id} className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm space-y-6 group hover:border-emerald-200 transition-all">
                         <div className="flex justify-between items-start">
                            <div className="space-y-1">
                               <h3 className="text-xl font-black text-slate-800">{p.name}</h3>
@@ -141,42 +146,42 @@ const AdminControl: React.FC = () => {
 
                         <div className="bg-slate-50 rounded-2xl p-6 min-h-[120px] relative">
                            {analyzingId === p.id ? (
-                              <div className="flex flex-col items-center justify-center gap-3 h-full">
-                                 <Loader2 className="w-6 h-6 text-emerald-600 animate-spin" />
-                                 <p className="text-[10px] font-black text-emerald-600 uppercase">Gemini analyse les reviews...</p>
-                              </div>
+                             <div className="flex flex-col items-center justify-center gap-3 h-full">
+                                <Loader2 className="w-6 h-6 text-emerald-600 animate-spin" />
+                                <p className="text-[10px] font-black text-emerald-600 uppercase">Gemini analyse les avis...</p>
+                             </div>
                            ) : aiReactions[p.id] ? (
-                              <div className="animate-in fade-in">
-                                 <div className="flex items-center gap-2 mb-3">
-                                    <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-                                    <span className="text-[9px] font-black text-emerald-700 uppercase tracking-widest">Réaction Machine Learning</span>
-                                 </div>
-                                 <p className="text-xs text-slate-600 leading-relaxed font-medium italic">
-                                    "{aiReactions[p.id]}"
-                                 </p>
-                              </div>
+                             <div className="animate-in fade-in">
+                                <div className="flex items-center gap-2 mb-3">
+                                   <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                                   <span className="text-[9px] font-black text-emerald-700 uppercase tracking-widest">Réaction Machine Learning</span>
+                                </div>
+                                <p className="text-xs text-slate-600 leading-relaxed font-medium italic">
+                                   "{aiReactions[p.id]}"
+                                </p>
+                             </div>
                            ) : (
-                              <div className="flex flex-col items-center justify-center gap-3 h-full opacity-40">
-                                 <BrainCircuit className="w-8 h-8 text-slate-300" />
-                                 <button 
-                                   onClick={() => analyzeSentiment(p.id)}
-                                   className="text-[9px] font-black text-slate-500 uppercase tracking-widest hover:text-emerald-600"
-                                 >
+                             <div className="flex flex-col items-center justify-center gap-3 h-full opacity-40">
+                                <BrainCircuit className="w-8 h-8 text-slate-300" />
+                                <button 
+                                  onClick={() => analyzeSentiment(p.id)}
+                                  className="text-[9px] font-black text-slate-500 uppercase tracking-widest hover:text-emerald-600"
+                                >
                                    Lancer l'analyse IA
-                                 </button>
-                              </div>
+                                </button>
+                             </div>
                            )}
                         </div>
                         
                         {pReviews.length > 0 && !aiReactions[p.id] && (
-                           <button 
-                             onClick={() => analyzeSentiment(p.id)}
-                             className="w-full py-4 bg-emerald-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-200"
-                           >
-                              SYNCHRONISER LA RÉACTION IA
-                           </button>
+                          <button 
+                            onClick={() => analyzeSentiment(p.id)}
+                            className="w-full py-4 bg-emerald-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-200"
+                          >
+                             SYNCHRONISER LA RÉACTION IA
+                          </button>
                         )}
-                     </div>
+                    </div>
                   );
                })}
             </div>
@@ -191,7 +196,7 @@ const AdminControl: React.FC = () => {
                  <Trash2 className="w-4 h-4" /> Demandes de clôture
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                 {deletionRequests.map(u => (
+                {deletionRequests.map(u => (
                    <div key={u.id} className="bg-red-50 p-6 rounded-[2.5rem] border-2 border-red-200 flex flex-col justify-between gap-6 shadow-xl shadow-red-500/10">
                       <div className="flex items-center gap-4">
                          <div className="w-14 h-14 bg-red-600 text-white rounded-2xl flex items-center justify-center text-xl font-black">{u.prenom.charAt(0)}</div>
@@ -202,7 +207,7 @@ const AdminControl: React.FC = () => {
                          <button onClick={async () => { await db.cancelAccountDeletion(u.id!); loadData(); }} className="flex-1 py-4 bg-white border border-red-200 text-red-600 rounded-2xl text-[10px] font-black uppercase">REJETER</button>
                       </div>
                    </div>
-                 ))}
+                ))}
               </div>
             </section>
           )}
@@ -255,7 +260,7 @@ const AdminControl: React.FC = () => {
         </div>
       )}
 
-      {tab === 'activity' && (
+       {tab === 'activity' && (
         <div className="space-y-6 animate-in slide-in-from-right-4">
            <div className="grid grid-cols-1 gap-4">
               {collections.map((col, i) => (
@@ -265,6 +270,58 @@ const AdminControl: React.FC = () => {
                       <div><h3 className="font-black text-slate-800">{col.site}</h3><p className="text-[10px] font-bold text-slate-400 uppercase">{new Date(col.created_at).toLocaleString()}</p></div>
                    </div>
                    {!col.is_read && <button onClick={async () => { await db.markCollectionAsRead(col.id); loadData(); }} className="bg-emerald-50 text-emerald-600 p-3 rounded-xl"><Check className="w-5 h-5" /></button>}
+                </div>
+              ))}
+           </div>
+        </div>
+      )}
+
+      {tab === 'hardware' && (
+        <div className="space-y-8 animate-in slide-in-from-bottom-4">
+           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[
+                { id: 'GW-001', type: 'Passerelle LoRaWAN', location: 'Beni Mellal - Site A', status: 'ONLINE', battery: '100%', signal: 'Excellent' },
+                { id: 'SN-772', type: 'Capteur pH (Cuve B4)', location: 'Meknès - Huilerie Nord', status: 'WARNING', battery: '12%', signal: 'Moyen' },
+                { id: 'SN-881', type: 'Capteur Température', location: 'Marrakech - Al Haouz', status: 'ONLINE', battery: '85%', signal: 'Bon' },
+                { id: 'GW-002', type: 'Passerelle LoRaWAN', location: 'Casablanca - Hub', status: 'ONLINE', battery: '98%', signal: 'Excellent' },
+                { id: 'SN-901', type: 'Capteur Humidité', location: 'Tanger - Nord Olea', status: 'OFFLINE', battery: '0%', signal: 'N/A' },
+              ].map(device => (
+                <div key={device.id} className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm space-y-6 group hover:border-emerald-200 transition-all">
+                   <div className="flex justify-between items-start">
+                      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${
+                        device.status === 'ONLINE' ? 'bg-emerald-50 text-emerald-600' : 
+                        device.status === 'WARNING' ? 'bg-amber-50 text-amber-600' : 'bg-red-50 text-red-600'
+                      }`}>
+                         <Cpu className="w-7 h-7" />
+                      </div>
+                      <div className={`px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest ${
+                        device.status === 'ONLINE' ? 'bg-emerald-100 text-emerald-700' : 
+                        device.status === 'WARNING' ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'
+                      }`}>
+                         {device.status}
+                      </div>
+                   </div>
+                   <div className="space-y-1">
+                      <h3 className="text-lg font-black text-slate-800">{device.id}</h3>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{device.type}</p>
+                   </div>
+                   <div className="pt-4 border-t border-slate-50 space-y-3">
+                      <div className="flex justify-between text-[10px] font-bold">
+                         <span className="text-slate-400 uppercase">Localisation</span>
+                         <span className="text-slate-700">{device.location}</span>
+                      </div>
+                      <div className="flex justify-between text-[10px] font-bold">
+                         <span className="text-slate-400 uppercase">Batterie</span>
+                         <span className={parseInt(device.battery) < 20 ? 'text-red-500' : 'text-slate-700'}>{device.battery}</span>
+                      </div>
+                      <div className="flex justify-between text-[10px] font-bold">
+                         <span className="text-slate-400 uppercase">Signal</span>
+                         <span className="text-slate-700">{device.signal}</span>
+                      </div>
+                   </div>
+                   <button className="w-full py-4 bg-slate-50 text-slate-400 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-900 hover:text-white transition-all">
+                      Ping Appareil
+                   </button>
                 </div>
               ))}
            </div>
