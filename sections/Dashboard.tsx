@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { 
   Droplets, 
@@ -9,10 +8,10 @@ import {
   Activity, 
   Zap, 
   ShieldCheck, 
-  Gauge,
-  XCircle,
-  MapPin,
-  Factory,
+  Gauge, 
+  XCircle, 
+  MapPin, 
+  Factory, 
   User,
   Phone,
   Mail,
@@ -22,7 +21,6 @@ import {
   Lock
 } from 'lucide-react';
 import { db, MAASSRAS_DATA } from '../services/db';
-import { GoogleGenAI } from "@google/genai";
 import { UserProfile } from '../types';
 
 interface DashboardProps {
@@ -76,12 +74,21 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   useEffect(() => {
     const fetchAiVerdict = async () => {
       try {
-        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-        const response = await ai.models.generateContent({
-          model: 'gemini-3-flash-preview',
-          contents: `Analyse IoT OliPack pour ${selectedMaassra} à ${selectedRegion}: Temp=${temp}°C, pH=${ph}. Si Temp > 32 ou pH hors [3.8-5.8], le lot est NON-CONFORME. Explique brièvement pourquoi en tant qu'expert en bioplastique PHA.`,
+        const response = await fetch("/api/ai/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            message: `Analyse IoT OliPack pour ${selectedMaassra} à ${selectedRegion}: Temp=${temp}°C, pH=${ph}. Si Temp > 32 ou pH hors [3.8-5.8], le lot est NON-CONFORME. Explique brièvement pourquoi en tant qu'expert en bioplastique PHA.`,
+          })
         });
-        setAiVerdict(response.text || "Analyse en attente...");
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || "Failed to generate verdict.");
+        }
+
+        const data = await response.json();
+        setAiVerdict(data.text || "Analyse en attente...");
       } catch (e) {
         setAiVerdict(isLotBad ? "ALERTE : Anomalie détectée. Qualité critique pour la transformation PHA." : "Lot conforme et prêt pour valorisation.");
       }
@@ -139,7 +146,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
 
            <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm space-y-6">
               <div className="flex justify-between items-center">
-                 <h2 className="text-xl font-black text-slate-800 flex items-center gap-2"><BrainCircuit className="text-emerald-600" /> Analyse IA Predictive</h2>
+                 <h2 className="text-xl font-black text-slate-800 flex items-center gap-2"><BrainCircuit className="text-emerald-600" /> Analyse IA Prédictive</h2>
                  <div className="bg-slate-50 px-4 py-1 rounded-full border border-slate-200 text-[10px] font-bold text-slate-400 uppercase">Gemini 3 Flash</div>
               </div>
               <div className={`p-6 rounded-3xl border ${isLotBad ? 'bg-red-50 border-red-100 text-red-700' : 'bg-emerald-50 border-emerald-100 text-emerald-800'} transition-all duration-500`}>
@@ -152,7 +159,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
            <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm space-y-6">
               <h2 className="text-lg font-black text-slate-800 uppercase tracking-tight">Liste des Sites ({selectedRegion})</h2>
               <div className="space-y-3">
-                 {(MAASSRAS_DATA[selectedRegion] || []).map(m => (
+                {(MAASSRAS_DATA[selectedRegion] || []).map(m => (
                     <button 
                       key={m}
                       onClick={() => setSelectedMaassra(m)}
@@ -165,7 +172,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                           {selectedMaassra === m && <CheckCircle className="w-4 h-4" />}
                        </div>
                     </button>
-                 ))}
+                ))}
               </div>
            </div>
 
@@ -174,7 +181,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
               <div className="relative z-10 space-y-4">
                  <h3 className="text-xl font-black italic">Protection de la Zone</h3>
                  <p className="text-[10px] text-emerald-100/60 leading-relaxed font-medium uppercase tracking-widest">
-                    En tant que technicien affecté à {userCity}, vous supervisez la qualité des rejets pour prévenir toute pollution des nappes phréatiques locales.
+                       En tant que technicien affecté à {userCity}, vous supervisez la qualité des rejets pour prévenir toute pollution des nappes phréatiques locales.
                  </p>
               </div>
            </div>
