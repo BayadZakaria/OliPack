@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { GoogleGenAI } from "@google/genai";
 import { 
   Palette, 
   Wand2, 
@@ -75,40 +74,25 @@ const OliPackStudio: React.FC<OliPackStudioProps> = ({ user, onRequireAuth }) =>
     setLoadingMessage("L'IA sculpte votre prototype avec le logo OliPack...");
 
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-      
-      const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash-image",
-        contents: [
-          {
-            text: `High-end industrial design of ${prompt}. The product MUST prominently feature the "OliPack" logo. Made of premium PHA bioplastic from olive waste. Texture is matte emerald green with golden olive reflections. Studio lighting, 8k, professional product photography, clean background.`,
-          }
-        ],
-        config: {
-          imageConfig: {
-            aspectRatio: "1:1"
-          }
-        }
+      const response = await fetch("/api/ai/generate-image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: `High-end industrial design of ${prompt}. The product MUST prominently feature the "OliPack" logo. Made of premium PHA bioplastic from olive waste. Texture is matte emerald green with golden olive reflections. Studio lighting, 8k, professional product photography, clean background.`,
+          aspectRatio: "1:1"
+        })
       });
-      
-      // Extract image from response
-      let foundImage = false;
-      for (const part of response.candidates?.[0]?.content?.parts || []) {
-        if (part.inlineData) {
-          const base64Data = part.inlineData.data;
-          setImageResult(`data:image/png;base64,${base64Data}`);
-          foundImage = true;
-          break;
-        }
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to generate image.");
       }
 
-      if (!foundImage) {
-        // Fallback for demo if model doesn't return image
-        setImageResult("https://images.unsplash.com/photo-1617897903246-719242758050?q=80&w=800&auto=format&fit=crop");
-      }
+      const data = await response.json();
+      setImageResult(data.image);
       
     } catch (err: any) {
-      setError("Erreur de génération. Vérifiez votre clé API et les quotas.");
+      setError("Erreur de génération. Vérifiez la configuration serveur.");
       console.error(err);
       // Fallback for demo
       setImageResult("https://images.unsplash.com/photo-1617897903246-719242758050?q=80&w=800&auto=format&fit=crop");
@@ -330,4 +314,3 @@ const OliPackStudio: React.FC<OliPackStudioProps> = ({ user, onRequireAuth }) =>
 };
 
 export default OliPackStudio;
-
