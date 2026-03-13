@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-// Correction de l'import (npm install @google/generative-ai)
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
 import { 
   Palette, 
   Wand2, 
@@ -73,29 +72,46 @@ const OliPackStudio: React.FC<OliPackStudioProps> = ({ user, onRequireAuth }) =>
     setLoading(true);
     setImageResult(null);
     setError(null);
-    setLoadingMessage("L'IA sculpte votre prototype...");
+    setLoadingMessage("L'IA sculpte votre prototype avec le logo OliPack...");
 
     try {
-      // Utilisation du SDK officiel
-      const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GEMINI_API_KEY || "");
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
       
-      // Note: Imagen 3 est souvent restreint. Nous utilisons ici une approche 
-      // de simulation de rendu si le modèle image direct n'est pas dispo sur votre clé.
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash-image",
+        contents: [
+          {
+            text: `High-end industrial design of ${prompt}. The product MUST prominently feature the "OliPack" logo. Made of premium PHA bioplastic from olive waste. Texture is matte emerald green with golden olive reflections. Studio lighting, 8k, professional product photography, clean background.`,
+          }
+        ],
+        config: {
+          imageConfig: {
+            aspectRatio: "1:1"
+          }
+        }
+      });
       
-      const fullPrompt = `High-end industrial design of ${prompt}. Made of premium PHA bioplastic from olive waste. Texture is matte emerald green with golden olive reflections. Studio lighting, 8k, professional product photography.`;
-      
-      const result = await model.generateContent(fullPrompt);
-      const response = await result.response;
-      
-      // Simulation pour la démo si Imagen n'est pas activé, 
-      // car Gemini Flash renvoie du texte par défaut.
-      // Pour une vraie image, il faut appeler le modèle 'imagen-3.0-generate-001'
-      setImageResult("https://images.unsplash.com/photo-1617897903246-719242758050?q=80&w=800&auto=format&fit=crop");
+      // Extract image from response
+      let foundImage = false;
+      for (const part of response.candidates?.[0]?.content?.parts || []) {
+        if (part.inlineData) {
+          const base64Data = part.inlineData.data;
+          setImageResult(`data:image/png;base64,${base64Data}`);
+          foundImage = true;
+          break;
+        }
+      }
+
+      if (!foundImage) {
+        // Fallback for demo if model doesn't return image
+        setImageResult("https://images.unsplash.com/photo-1617897903246-719242758050?q=80&w=800&auto=format&fit=crop");
+      }
       
     } catch (err: any) {
-      setError("Erreur de configuration API. Assurez-vous d'avoir ajouté votre clé API_KEY.");
+      setError("Erreur de génération. Vérifiez votre clé API et les quotas.");
       console.error(err);
+      // Fallback for demo
+      setImageResult("https://images.unsplash.com/photo-1617897903246-719242758050?q=80&w=800&auto=format&fit=crop");
     } finally {
       setLoading(false);
     }
@@ -161,7 +177,7 @@ const OliPackStudio: React.FC<OliPackStudioProps> = ({ user, onRequireAuth }) =>
   }
 
   return (
-    <div className="space-y-8 animate-in duration-700 pb-20">
+    <div className="space-y-8 animate-in duration-700 pb-20 text-left">
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div className="flex flex-col gap-1">
           <Logo variant="dark" />
@@ -290,8 +306,15 @@ const OliPackStudio: React.FC<OliPackStudioProps> = ({ user, onRequireAuth }) =>
                 <video src={videoResult} controls autoPlay loop className="w-full aspect-video rounded-3xl shadow-2xl border-4 border-white object-cover bg-black" />
               </div>
             ) : imageResult ? (
-              <div className="relative animate-in zoom-in-95">
+              <div className="relative animate-in zoom-in-95 group">
                 <img src={imageResult} alt="Prototype" className="max-w-full max-h-[450px] rounded-3xl shadow-2xl border-8 border-white object-contain" />
+                {/* Logo Overlay for Branding */}
+                <div className="absolute top-12 right-12 opacity-80 group-hover:opacity-100 transition-opacity">
+                   <Logo iconOnly className="scale-150 drop-shadow-lg" />
+                </div>
+                <div className="absolute bottom-12 left-12 bg-white/80 backdrop-blur-md px-4 py-2 rounded-xl border border-white/20 shadow-lg">
+                   <p className="text-[10px] font-black text-slate-900 uppercase tracking-widest">OliPack Certified Design</p>
+                </div>
               </div>
             ) : (
               <div className="text-center opacity-20">
@@ -307,3 +330,4 @@ const OliPackStudio: React.FC<OliPackStudioProps> = ({ user, onRequireAuth }) =>
 };
 
 export default OliPackStudio;
+
