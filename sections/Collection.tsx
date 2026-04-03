@@ -1,19 +1,19 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { 
-  Truck, 
-  MapPin, 
-  CheckCircle2, 
-  Navigation, 
-  Loader2, 
-  AlertTriangle, 
-  XCircle, 
-  Activity, 
-  Search, 
-  Thermometer, 
-  Zap, 
-  Sparkles, 
-  ArrowRight, 
+import {
+  Truck,
+  MapPin,
+  CheckCircle2,
+  Navigation,
+  Loader2,
+  AlertTriangle,
+  XCircle,
+  Activity,
+  Search,
+  Thermometer,
+  Zap,
+  Sparkles,
+  ArrowRight,
   Timer,
   Droplets,
   QrCode,
@@ -33,8 +33,8 @@ interface Site {
   location: string;
   ville: string;
   volume: number;
-  capacity: number; 
-  fillLevel: number; 
+  capacity: number;
+  fillLevel: number;
   temp: number;
   ph: number;
   status: 'A collecter' | 'En cours' | 'Terminé' | 'Bloqué';
@@ -48,10 +48,9 @@ const TankVisual: React.FC<{ fill: number, quality: string }> = ({ fill, quality
   return (
     <div className="relative w-28 h-40 shrink-0">
       <div className="absolute inset-0 border-[3px] border-slate-200 rounded-b-[1.5rem] rounded-t-lg bg-slate-50/50 overflow-hidden shadow-inner">
-        <div 
-          className={`absolute bottom-0 left-0 right-0 transition-all duration-1000 ease-in-out ${
-            isBadQuality ? 'bg-red-900/80' : 'bg-emerald-950'
-          }`}
+        <div
+          className={`absolute bottom-0 left-0 right-0 transition-all duration-1000 ease-in-out ${isBadQuality ? 'bg-red-900/80' : 'bg-emerald-950'
+            }`}
           style={{ height: `${fill}%` }}
         >
           <div className="absolute top-0 left-0 right-0 h-1.5 bg-white/10 animate-pulse"></div>
@@ -89,7 +88,7 @@ const Collection: React.FC<CollectionProps> = ({ user }) => {
   const [history, setHistory] = useState<any[]>([]);
   const [isProcessing, setIsProcessing] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [activeQr, setActiveQr] = useState<{id: string, name: string} | null>(null);
+  const [activeQr, setActiveQr] = useState<{ id: string, name: string } | null>(null);
 
   useEffect(() => {
     const loadHistory = async () => {
@@ -101,9 +100,7 @@ const Collection: React.FC<CollectionProps> = ({ user }) => {
 
   const filteredSites = useMemo(() => {
     return sites.filter(site => {
-      // Pour satisfaire la demande : L'admin ET le collecteur (logistique) voient TOUT.
-      const hasFullVisibility = user?.role === 'ADMIN' || user?.role === 'COLLECTEUR';
-      const isMyCity = hasFullVisibility || site.ville === user?.ville;
+      const isMyCity = user?.role === 'ADMIN' || site.ville === user?.ville;
       const matchesSearch = site.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                            site.location.toLowerCase().includes(searchTerm.toLowerCase());
       return isMyCity && matchesSearch;
@@ -113,7 +110,7 @@ const Collection: React.FC<CollectionProps> = ({ user }) => {
   const validateCollection = async (id: string) => {
     const site = sites.find(s => s.id === id);
     if (!site || site.quality === 'Non-Conforme') return;
-    
+
     setIsProcessing(id);
     setTimeout(async () => {
       const newEvent = {
@@ -138,35 +135,35 @@ const Collection: React.FC<CollectionProps> = ({ user }) => {
       <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
         <div>
           <h1 className="text-3xl font-black text-slate-900 flex items-center gap-3">
-             <div className="bg-emerald-950 p-3 rounded-2xl shadow-xl shadow-emerald-950/20">
-                <Truck className="text-white w-8 h-8" />
-             </div>
-             Supervision des Flux
+            <div className="bg-emerald-950 p-3 rounded-2xl shadow-xl shadow-emerald-950/20">
+              <Truck className="text-white w-8 h-8" />
+            </div>
+            Supervision des Flux
           </h1>
           <div className="flex items-center gap-3 mt-2">
             <span className="bg-emerald-100 text-emerald-700 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest border border-emerald-200 flex items-center gap-1.5">
               <MapPin className="w-3 h-3" /> {user?.role === 'ADMIN' || user?.role === 'COLLECTEUR' ? 'Vision Nationale' : user?.ville}
             </span>
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-               <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span> IoT Cloud Sync
+              <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span> IoT Cloud Sync
             </span>
           </div>
         </div>
 
         <div className="flex bg-white p-1 rounded-2xl border border-slate-200 shadow-sm w-full lg:w-auto overflow-x-auto no-scrollbar">
-           <button onClick={() => setTab('monitor')} className={`flex-1 lg:flex-none px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${tab === 'monitor' ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}>
-              <LayoutDashboard className="w-4 h-4" /> Temps Réel
-           </button>
-           <button onClick={() => setTab('history')} className={`flex-1 lg:flex-none px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${tab === 'history' ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}>
-              <History className="w-4 h-4" /> Historique
-              {history.length > 0 && <span className="bg-emerald-500 text-white text-[8px] px-1.5 py-0.5 rounded-full">{history.length}</span>}
-           </button>
+          <button onClick={() => setTab('monitor')} className={`flex-1 lg:flex-none px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${tab === 'monitor' ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}>
+            <LayoutDashboard className="w-4 h-4" /> Temps Réel
+          </button>
+          <button onClick={() => setTab('history')} className={`flex-1 lg:flex-none px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${tab === 'history' ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}>
+            <History className="w-4 h-4" /> Historique
+            {history.length > 0 && <span className="bg-emerald-500 text-white text-[8px] px-1.5 py-0.5 rounded-full">{history.length}</span>}
+          </button>
         </div>
       </header>
 
       {/* STATS OVERVIEW */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-         <StatItem icon={Droplets} label="Volume Total" value="12,4k L" color="text-blue-600" />
+         <StatItem icon={Droplets} label="Volume Dispo" value="12,4k L" color="text-blue-600" />
          <StatItem icon={AlertTriangle} label="En Alerte" value={sites.filter(s => s.fillLevel >= 80).length.toString()} color="text-amber-500" />
          <StatItem icon={CheckCircle2} label="Collectes/Jour" value="08" color="text-emerald-600" />
          <StatItem icon={TrendingUp} label="Efficacité" value="98%" color="text-slate-900" />
@@ -174,22 +171,21 @@ const Collection: React.FC<CollectionProps> = ({ user }) => {
 
       {tab === 'monitor' ? (
         <div className="space-y-6">
-           <div className="relative w-full">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <input 
-                type="text" 
-                placeholder="Rechercher une Maâssra ou une zone..." 
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-11 pr-4 py-4 bg-white border border-slate-200 rounded-[1.5rem] text-sm outline-none focus:ring-4 focus:ring-emerald-500/10 transition-all shadow-sm"
-              />
-           </div>
+          <div className="relative w-full">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Rechercher une Maâssra ou une zone..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-11 pr-4 py-4 bg-white border border-slate-200 rounded-[1.5rem] text-sm outline-none focus:ring-4 focus:ring-emerald-500/10 transition-all shadow-sm"
+            />
+          </div>
 
-           <div className="grid grid-cols-1 gap-6">
-              {filteredSites.map(site => (
-                <div key={site.id} className={`bg-white rounded-[2.5rem] p-6 md:p-8 border-2 transition-all flex flex-col md:flex-row gap-8 items-center ${
-                  site.quality === 'Non-Conforme' ? 'border-red-100 bg-red-50/20' : 
-                  site.status === 'Terminé' ? 'border-emerald-100 bg-emerald-50/5' : 
+          <div className="grid grid-cols-1 gap-6">
+            {filteredSites.map(site => (
+              <div key={site.id} className={`bg-white rounded-[2.5rem] p-6 md:p-8 border-2 transition-all flex flex-col md:flex-row gap-8 items-center ${site.quality === 'Non-Conforme' ? 'border-red-100 bg-red-50/20' :
+                site.status === 'Terminé' ? 'border-emerald-100 bg-emerald-50/5' :
                   site.fillLevel >= 80 ? 'border-amber-200 shadow-xl' : 'border-slate-100/50 shadow-sm'
                 }`}>
                   <TankVisual fill={site.fillLevel} quality={site.quality} />
@@ -199,7 +195,7 @@ const Collection: React.FC<CollectionProps> = ({ user }) => {
                        <div>
                           <h3 className="text-2xl font-black text-slate-800 tracking-tight">{site.name}</h3>
                           <p className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1 mt-1">
-                            <MapPin className="w-3.5 h-3.5" /> {site.location} ({site.ville})
+                            <MapPin className="w-3.5 h-3.5" /> {site.location}
                           </p>
                        </div>
                        <div className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border ${
@@ -209,125 +205,124 @@ const Collection: React.FC<CollectionProps> = ({ user }) => {
                        </div>
                     </div>
 
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                       <MetricCard icon={Droplets} label="Niveau" value={`${site.volume} L`} />
-                       <MetricCard icon={Thermometer} label="Temp." value={`${site.temp}°C`} />
-                       <MetricCard icon={Zap} label="pH" value={site.ph.toString()} />
-                       <MetricCard icon={Calendar} label="MàJ" value={site.lastUpdate} />
-                    </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <MetricCard icon={Droplets} label="Niveau" value={`${site.volume} L`} />
+                    <MetricCard icon={Thermometer} label="Temp." value={`${site.temp}°C`} />
+                    <MetricCard icon={Zap} label="pH" value={site.ph.toString()} />
+                    <MetricCard icon={Calendar} label="MàJ" value={site.lastUpdate} />
+                  </div>
 
-                    <div className="pt-2 flex flex-col sm:flex-row gap-3">
-                       {site.quality === 'Non-Conforme' ? (
-                         <div className="w-full bg-red-600 text-white p-4 rounded-2xl flex items-center justify-center gap-3 text-[10px] font-black uppercase border border-red-500">
-                            <XCircle className="w-5 h-5" /> ACCÈS BLOQUÉ : CONTAMINATION DÉTECTÉE
-                         </div>
-                       ) : site.fillLevel >= 1 ? (
-                         <>
-                           <button 
-                             onClick={() => validateCollection(site.id)}
-                             disabled={isProcessing === site.id}
-                             className={`flex-[2] py-4 rounded-2xl font-black text-xs flex items-center justify-center gap-3 transition-all shadow-xl active:scale-95 ${
-                               site.fillLevel >= 80 ? 'bg-amber-500 text-white shadow-amber-200' : 'bg-emerald-600 text-white shadow-emerald-200'
-                             }`}
-                           >
-                             {isProcessing === site.id ? <Loader2 className="animate-spin w-5 h-5" /> : <Truck className="w-5 h-5" />}
-                             {site.fillLevel >= 80 ? 'URGENCE : VIDER MAINTENANT' : 'VALIDER LA COLLECTE'}
-                           </button>
-                           <button 
-                             onClick={() => setActiveQr({id: site.id, name: site.name})}
-                             className="flex-1 bg-slate-900 text-white p-4 rounded-2xl flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-xl"
-                           >
-                              <QrCode className="w-5 h-5" /> PASS QR
-                           </button>
-                         </>
-                       ) : (
-                         <div className="w-full bg-slate-100 text-slate-400 p-4 rounded-2xl flex items-center justify-center gap-2 text-[10px] font-black uppercase border border-slate-200">
-                            <CheckCircle2 className="w-5 h-5" /> Cuve Vide - Collecte Terminée
-                         </div>
-                       )}
-                    </div>
+                  <div className="pt-2 flex flex-col sm:flex-row gap-3">
+                    {site.quality === 'Non-Conforme' ? (
+                      <div className="w-full bg-red-600 text-white p-4 rounded-2xl flex items-center justify-center gap-3 text-[10px] font-black uppercase border border-red-500">
+                        <XCircle className="w-5 h-5" /> ACCÈS BLOQUÉ : CONTAMINATION DÉTECTÉE
+                      </div>
+                    ) : site.fillLevel >= 1 ? (
+                      <>
+                        <button
+                          onClick={() => validateCollection(site.id)}
+                          disabled={isProcessing === site.id}
+                          className={`flex-[2] py-4 rounded-2xl font-black text-xs flex items-center justify-center gap-3 transition-all shadow-xl active:scale-95 ${site.fillLevel >= 80 ? 'bg-amber-500 text-white shadow-amber-200' : 'bg-emerald-600 text-white shadow-emerald-200'
+                            }`}
+                        >
+                          {isProcessing === site.id ? <Loader2 className="animate-spin w-5 h-5" /> : <Truck className="w-5 h-5" />}
+                          {site.fillLevel >= 80 ? 'URGENCE : VIDER MAINTENANT' : 'VALIDER LA COLLECTE'}
+                        </button>
+                        <button
+                          onClick={() => setActiveQr({ id: site.id, name: site.name })}
+                          className="flex-1 bg-slate-900 text-white p-4 rounded-2xl flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-xl"
+                        >
+                          <QrCode className="w-5 h-5" /> PASS QR
+                        </button>
+                      </>
+                    ) : (
+                      <div className="w-full bg-slate-100 text-slate-400 p-4 rounded-2xl flex items-center justify-center gap-2 text-[10px] font-black uppercase border border-slate-200">
+                        <CheckCircle2 className="w-5 h-5" /> Cuve Vide - Collecte Terminée
+                      </div>
+                    )}
                   </div>
                 </div>
-              ))}
-           </div>
+              </div>
+            ))}
+          </div>
         </div>
       ) : (
         <div className="space-y-6 animate-in slide-in-from-right-4">
-           <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
-              <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
-                 <h2 className="text-sm font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
-                    <History className="w-4 h-4 text-emerald-600" /> Flux Logistiques Récents
-                 </h2>
-                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{history.length} Opérations</span>
-              </div>
-              <div className="overflow-x-auto">
-                 <table className="w-full text-left">
-                    <thead>
-                       <tr className="bg-slate-50 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">
-                          <th className="px-8 py-5">Opération</th>
-                          <th className="px-8 py-5">Source</th>
-                          <th className="px-8 py-5">Volume</th>
-                          <th className="px-8 py-5">Paramètres</th>
-                          <th className="px-8 py-5">Date</th>
-                       </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-50">
-                       {history.map((h, i) => (
-                          <tr key={h.id || i} className="group hover:bg-emerald-50/30 transition-colors">
-                             <td className="px-8 py-5">
-                                <div className="flex items-center gap-3">
-                                   <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center">
-                                      <Truck className="w-4 h-4" />
-                                   </div>
-                                   <div className="text-[11px] font-black text-slate-800 uppercase">Collecte Camion</div>
-                                </div>
-                             </td>
-                             <td className="px-8 py-5">
-                                <div className="text-[11px] font-bold text-slate-600">{h.site}</div>
-                                <div className="text-[9px] text-slate-400 uppercase font-black">{h.operator || 'OliPack Team'}</div>
-                             </td>
-                             <td className="px-8 py-5 text-[11px] font-black text-emerald-600">{h.volume} L</td>
-                             <td className="px-8 py-5">
-                                <div className="flex gap-2">
-                                   <span className="px-2 py-0.5 bg-slate-100 text-[9px] font-bold rounded-full text-slate-500">pH {h.ph || '4.5'}</span>
-                                   <span className="px-2 py-0.5 bg-slate-100 text-[9px] font-bold rounded-full text-slate-500">{h.temp || '24'}°C</span>
-                                </div>
-                             </td>
-                             <td className="px-8 py-5 text-[10px] font-bold text-slate-400">
-                                {new Date(h.created_at).toLocaleDateString()} <span className="text-[8px] opacity-60 ml-1">{new Date(h.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                             </td>
-                          </tr>
-                       ))}
-                    </tbody>
-                 </table>
-              </div>
-           </div>
+          <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
+            <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
+              <h2 className="text-sm font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
+                <History className="w-4 h-4 text-emerald-600" /> Flux Logistiques Récents
+              </h2>
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{history.length} Opérations</span>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="bg-slate-50 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">
+                    <th className="px-8 py-5">Opération</th>
+                    <th className="px-8 py-5">Source</th>
+                    <th className="px-8 py-5">Volume</th>
+                    <th className="px-8 py-5">Paramètres</th>
+                    <th className="px-8 py-5">Date</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-50">
+                  {history.map((h, i) => (
+                    <tr key={h.id || i} className="group hover:bg-emerald-50/30 transition-colors">
+                      <td className="px-8 py-5">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center">
+                            <Truck className="w-4 h-4" />
+                          </div>
+                          <div className="text-[11px] font-black text-slate-800 uppercase">Collecte Camion</div>
+                        </div>
+                      </td>
+                      <td className="px-8 py-5">
+                        <div className="text-[11px] font-bold text-slate-600">{h.site}</div>
+                        <div className="text-[9px] text-slate-400 uppercase font-black">{h.operator || 'OliPack Team'}</div>
+                      </td>
+                      <td className="px-8 py-5 text-[11px] font-black text-emerald-600">{h.volume} L</td>
+                      <td className="px-8 py-5">
+                        <div className="flex gap-2">
+                          <span className="px-2 py-0.5 bg-slate-100 text-[9px] font-bold rounded-full text-slate-500">pH {h.ph || '4.5'}</span>
+                          <span className="px-2 py-0.5 bg-slate-100 text-[9px] font-bold rounded-full text-slate-500">{h.temp || '24'}°C</span>
+                        </div>
+                      </td>
+                      <td className="px-8 py-5 text-[10px] font-bold text-slate-400">
+                        {new Date(h.created_at).toLocaleDateString()} <span className="text-[8px] opacity-60 ml-1">{new Date(h.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       )}
 
       {/* MODAL QR PASS (Identique) */}
       {activeQr && (
         <div className="fixed inset-0 z-[100] bg-emerald-950/90 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in duration-300">
-           <div className="bg-white w-full max-w-sm rounded-[3rem] p-10 text-center space-y-8 relative shadow-2xl overflow-hidden animate-in zoom-in-95">
-              <button onClick={() => setActiveQr(null)} className="absolute top-6 right-6 p-2 bg-slate-50 text-slate-400 rounded-xl"><X className="w-5 h-5" /></button>
-              <div className="space-y-2 pt-4">
-                 <h2 className="text-xl font-black text-slate-900">Pass de Transfert</h2>
-                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Site : {activeQr.name}</p>
-              </div>
-              <div className="bg-slate-50 p-6 rounded-[2rem] border-2 border-dashed border-emerald-200 flex justify-center shadow-inner">
-                 <img 
-                   src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(JSON.stringify({id: activeQr.id, site: activeQr.name, type: 'OLIPACK_TRANSFER'}))}`} 
-                   alt="QR Transfert" 
-                   className="w-56 h-56 rounded-xl shadow-lg"
-                 />
-              </div>
-              <div className="p-4 bg-emerald-50 text-emerald-700 rounded-2xl flex items-center gap-3 text-left">
-                 <Activity className="w-5 h-5 shrink-0" />
-                 <p className="text-[10px] font-bold leading-relaxed uppercase">
-                    Présentez ce code au centre de valorisation pour confirmer la réception du lot.
-                 </p>
-              </div>
-           </div>
+          <div className="bg-white w-full max-w-sm rounded-[3rem] p-10 text-center space-y-8 relative shadow-2xl overflow-hidden animate-in zoom-in-95">
+            <button onClick={() => setActiveQr(null)} className="absolute top-6 right-6 p-2 bg-slate-50 text-slate-400 rounded-xl"><X className="w-5 h-5" /></button>
+            <div className="space-y-2 pt-4">
+              <h2 className="text-xl font-black text-slate-900">Pass de Transfert</h2>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Site : {activeQr.name}</p>
+            </div>
+            <div className="bg-slate-50 p-6 rounded-[2rem] border-2 border-dashed border-emerald-200 flex justify-center shadow-inner">
+              <img
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(JSON.stringify({ id: activeQr.id, site: activeQr.name, type: 'OLIPACK_TRANSFER' }))}`}
+                alt="QR Transfert"
+                className="w-56 h-56 rounded-xl shadow-lg"
+              />
+            </div>
+            <div className="p-4 bg-emerald-50 text-emerald-700 rounded-2xl flex items-center gap-3 text-left">
+              <Activity className="w-5 h-5 shrink-0" />
+              <p className="text-[10px] font-bold leading-relaxed uppercase">
+                Présentez ce code au centre de valorisation pour confirmer la réception du lot.
+              </p>
+            </div>
+          </div>
         </div>
       )}
 
